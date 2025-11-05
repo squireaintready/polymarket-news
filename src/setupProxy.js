@@ -8,7 +8,7 @@ module.exports = function (app) {
       target: 'https://gamma-api.polymarket.com',
       changeOrigin: true,
       pathRewrite: {
-        '^/api/polymarket': '/markets?active=true&closed=false&limit=100&offset=0&liquidity_num_min=50000',
+        '^/api/polymarket': '/markets?active=true&closed=false&limit=100&offset=0',
       },
     })
   );

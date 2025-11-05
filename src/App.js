@@ -29,11 +29,12 @@ function Home() {
     localStorage.setItem('polymarket_articles', JSON.stringify(articleData));
   }, [articleData]);
 
+  // Fetch markets
   useEffect(() => {
     const fetchMarkets = async () => {
       try {
         const res = await axios.get('/api/polymarket');
-        const data = Array.isArray(res.data.data) ? res.data.data : [];
+        const data = Array.isArray(res.data) ? res.data : [];
         setMarkets(data);
         localStorage.setItem('polymarket_markets', JSON.stringify(data));
       } catch (err) {
@@ -46,17 +47,7 @@ function Home() {
 
   const formatNumber = (num) => num.toLocaleString();
 
-  const filtered = markets
-    .filter(m => m.active && !m.closed && parseFloat(m.liquidity || 0) > 10000 && parseFloat(m.volume || 0) > 50000)
-    .map(m => ({
-      id: m.id,
-      question: m.question,
-      odds: (parseFloat(m.lastTradePrice || 0) * 100).toFixed(1) + '%',
-      volume: Math.round(parseFloat(m.volume || 0)),
-      liquidity: Math.round(parseFloat(m.liquidity || 0)),
-      change: Math.round(parseFloat(m.oneHourPriceChange || 0))
-    }))
-    .sort((a, b) => b.volume - a.volume);
+  const filtered = [...markets].sort((a, b) => b.volume - a.volume);
 
   const generateAll = async (market) => {
     const cacheKey = market.id;
