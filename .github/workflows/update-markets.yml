@@ -1,4 +1,4 @@
-name: Update Markets Every 15 Minutes
+name: Update Markets Every 1 Minutes
 
 on:
   schedule:
