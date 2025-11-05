@@ -33,7 +33,7 @@ function Home() {
   useEffect(() => {
     const fetchMarkets = async () => {
       try {
-        const res = await axios.get('/api/polymarket');
+        const res = await axios.get('/api/polymarket.json');
         const data = Array.isArray(res.data) ? res.data : [];
         setMarkets(data);
         localStorage.setItem('polymarket_markets', JSON.stringify(data));

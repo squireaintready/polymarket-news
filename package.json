@@ -12,7 +12,7 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
@@ -21,7 +21,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "npm run fetch-markets && react-scripts build",
+    "fetch-markets": "node scripts/fetch-markets.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
