@@ -32,14 +32,13 @@ function Home() {
   useEffect(() => {
     const fetchMarkets = async () => {
       try {
-        const res = await axios.get(
-          '/api/polymarket'
-        );
-        const data = Array.isArray(res.data) ? res.data : res.data.data || [];
+        const res = await axios.get('/api/polymarket');
+        const data = Array.isArray(res.data) ? res.data : [];
+        console.log(data ? data : res.data)
         setMarkets(data);
         localStorage.setItem('polymarket_markets', JSON.stringify(data));
       } catch (err) {
-        setError('CORS blocked. Use extension or proxy.');
+        setError('Failed to load markets.');
       }
     };
     fetchMarkets();
@@ -47,22 +46,7 @@ function Home() {
 
   const formatNumber = (num) => num.toLocaleString();
 
-  const getFilteredMarkets = (markets) => {
-    return markets
-      .filter(m => m.active && !m.closed && parseFloat(m.liquidity || 0) > 10000 && parseFloat(m.volume || 0) > 50000)
-      .map(m => ({
-        id: m.id,
-        question: m.question,
-        odds: (parseFloat(m.lastTradePrice || 0) * 100).toFixed(1) + '%',
-        volume: Math.round(parseFloat(m.volume || 0)),
-        liquidity: Math.round(parseFloat(m.liquidity || 0)),
-        change: Math.round(parseFloat(m.oneHourPriceChange || 0))
-      }))
-      .sort((a, b) => b.volume - a.volume);
-  };
-
-  // const filtered = getFilteredMarkets(markets);
-  const filtered = markets;
+  const filtered = markets.sort((a, b) => b.volume - a.volume);
 
   const generateAll = async (market) => {
     const cacheKey = market.id;
@@ -266,7 +250,6 @@ function Article() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try localStorage first
     const articles = JSON.parse(localStorage.getItem('polymarket_articles') || '{}');
     const data = articles[marketId];
 
@@ -277,7 +260,6 @@ function Article() {
       return;
     }
 
-    // Fallback: if not in cache, show error
     setArticle({ title: 'Article Not Found', content: 'This article was not generated.', date: 'N/A' });
     setLoading(false);
   }, [marketId]);
