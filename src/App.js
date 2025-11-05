@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import './App.css';
 
 function Home() {
   const [markets, setMarkets] = useState([]);
@@ -47,12 +48,41 @@ function Home() {
 
   const formatNumber = (num) => num.toLocaleString();
 
-  const filtered = [...markets].sort((a, b) => b.volume - a.volume);
+  // Parse outcomes and prices
+  const parseMarket = (m) => {
+    let outcomes = [];
+    let prices = [];
+    try {
+      outcomes = JSON.parse(m.outcomes || '[]');
+      prices = JSON.parse(m.outcomePrices || '[]').map(p => parseFloat(p));
+    } catch (e) {
+      outcomes = ['Yes', 'No'];
+      prices = [0.5, 0.5];
+    }
+
+    // Find highest probability
+    const maxIndex = prices.indexOf(Math.max(...prices));
+    const favored = outcomes[maxIndex] || 'Unknown';
+    const prob = (prices[maxIndex] * 100).toFixed(1);
+
+    return {
+      id: m.id,
+      question: m.question,
+      favored: `${favored}: ${prob}%`,
+      volume: Math.round(parseFloat(m.volume || 0)),
+      liquidity: Math.round(parseFloat(m.liquidity || 0)),
+      change: Math.round(parseFloat(m.oneHourPriceChange || 0))
+    };
+  };
+
+  const filtered = markets
+    .map(parseMarket)
+    .filter(m => m.volume > 50000 && m.liquidity > 10000)
+    .sort((a, b) => b.volume - a.volume);
 
   const loadArticle = async (market) => {
     const cacheKey = market.id;
 
-    // Load from JSON
     try {
       const res = await fetch(`/ai/${cacheKey}.json`);
       if (res.ok) {
@@ -60,11 +90,8 @@ function Home() {
         setArticleData(prev => ({ ...prev, [cacheKey]: article }));
         return;
       }
-    } catch (err) {
-      // Ignore
-    }
+    } catch (err) {}
 
-    // Fallback: generate
     setLoadingStates(prev => ({ ...prev, [cacheKey]: 'article' }));
 
     const now = new Date();
@@ -74,7 +101,7 @@ function Home() {
 
 "${market.question}"
 
-Current odds: ${market.odds}
+Current odds: ${market.favored}
 24h Volume: $${formatNumber(market.volume)}
 Liquidity: $${formatNumber(market.liquidity)}
 
@@ -122,13 +149,13 @@ Article body...`;
 
   const generateAll = async (market) => {
     const cacheKey = market.id;
-    const currentData = `${market.odds}-${market.volume}-${market.liquidity}`;
+    const currentData = market.favored;
 
     setLoadingStates(prev => ({ ...prev, [cacheKey]: 'analysis' }));
 
     if (!aiAnalysis[cacheKey] || aiAnalysis[cacheKey].data !== currentData) {
       const prompt = `Analyze Polymarket market: "${market.question}"
-Current odds: ${market.odds} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
+Current odds: ${market.favored} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
 
 Answer in plain text:
 
@@ -167,83 +194,72 @@ Answer in plain text:
     await loadArticle(market);
   };
 
-  if (error) return <div>{error}</div>;
+  if (error) return <div className="container"><p>{error}</p></div>;
 
   return (
-    <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
+    <div className="container">
       <h1>Polymarket Markets News</h1>
       {filtered.length === 0 ? (
         <p>No markets match criteria.</p>
       ) : (
-        <ol style={{ paddingLeft: 20 }}>
+        <ol className="market-list">
           {filtered.map((m) => {
             const analysis = aiAnalysis[m.id];
             const article = articleData[m.id];
             const loading = loadingStates[m.id];
-            const isCached = analysis && analysis.data === `${m.odds}-${m.volume}-${m.liquidity}`;
+            const isCached = analysis && analysis.data === m.favored;
             const title = article?.title || 'Read More';
 
             return (
-              <li key={m.id} style={{ marginBottom: 20 }}>
+              <li key={m.id} className="market-item">
                 <div
+                  className="market-header"
                   onClick={() => {
                     const newExpanded = expanded === m.id ? null : m.id;
                     setExpanded(newExpanded);
                     if (newExpanded && !isCached) generateAll(m);
                   }}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <strong>{m.question}</strong><br />
-                  <small>
-                    Odds: {m.odds} | Vol: ${formatNumber(m.volume)} | Liq: ${formatNumber(m.liquidity)}
-                    {isCached && <span style={{ color: '#34a853' }}> [Cached]</span>}
-                  </small>
+                  <div className="market-question">{m.question}</div>
+                  <div className="market-stats">
+                    <div className="stat">
+                      <span className="stat-label">Favored:</span>
+                      <span className="stat-value">{m.favored}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Vol:</span>
+                      <span className="stat-value">${formatNumber(m.volume)}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Liq:</span>
+                      <span className="stat-value">${formatNumber(m.liquidity)}</span>
+                    </div>
+                    {isCached && <span className="cached-badge">[Cached]</span>}
+                  </div>
                 </div>
                 {expanded === m.id && (
-                  <div style={{
-                    marginTop: 8,
-                    padding: 16,
-                    background: '#f8f9fa',
-                    borderRadius: 8,
-                    fontSize: '0.95em',
-                    lineHeight: 1.6,
-                    borderLeft: '4px solid #34a853'
-                  }}>
+                  <div className="market-content">
                     {analysis ? (
                       <>
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                          {analysis.text}
-                        </pre>
-                        <div style={{ marginTop: 12 }}>
+                        <div className="analysis-text">{analysis.text}</div>
+                        <div>
                           {article ? (
                             <Link
                               to={`/article/${m.id}`}
                               state={{ market: m, article: article.content, title: article.title, date: article.date }}
-                              style={{
-                                color: '#d32f2f',
-                                fontWeight: 'bold',
-                                textDecoration: 'none',
-                                fontSize: '0.95em'
-                              }}
+                              className="read-more"
                             >
                               Read More: {title}
                             </Link>
                           ) : (
-                            <span style={{
-                              color: '#d32f2f',
-                              fontWeight: 'bold',
-                              fontSize: '0.95em'
-                            }}>
-                              Read More: <span style={{
-                                display: 'inline-block',
-                                animation: 'blink 1s infinite'
-                              }}>___</span>
+                            <span className="read-more">
+                              Read More: <span className="blink">___</span>
                             </span>
                           )}
                         </div>
                       </>
                     ) : (
-                      <p style={{ margin: 0, color: '#666' }}>
+                      <p className="loading">
                         {loading === 'analysis' ? 'Analyzing...' : 'Generating article...'}
                       </p>
                     )}
@@ -282,9 +298,9 @@ function Article() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
-        <button onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
-          Back
+      <div className="article-page">
+        <button onClick={() => navigate(-1)} className="back-btn">
+          ← Back
         </button>
         <p>Loading...</p>
       </div>
@@ -292,15 +308,15 @@ function Article() {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
-      <button onClick={() => navigate(-1)} style={{ marginBottom: 16, fontSize: '0.9em' }}>
-        Back
+    <div className="article-page">
+      <button onClick={() => navigate(-1)} className="back-btn">
+        ← Back
       </button>
-      <div style={{ lineHeight: 1.8, fontSize: '1.1em' }}>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '1.8em', fontWeight: 'bold' }}>{article.title}</h1>
-        <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '0.9em' }}>Written on {article.date}</p>
-        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif' }}>{article.content}</pre>
-      </div>
+      <article>
+        <h1 className="article-title">{article.title}</h1>
+        <p className="article-date">Written on {article.date}</p>
+        <div className="article-content">{article.content}</div>
+      </article>
     </div>
   );
 }
