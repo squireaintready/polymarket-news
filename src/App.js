@@ -60,7 +60,6 @@ function Home() {
       prices = [0.5, 0.5];
     }
 
-    // Find highest probability
     const maxIndex = prices.indexOf(Math.max(...prices));
     const favored = outcomes[maxIndex] || 'Unknown';
     const prob = (prices[maxIndex] * 100).toFixed(1);
@@ -88,6 +87,7 @@ function Home() {
       if (res.ok) {
         const article = await res.json();
         setArticleData(prev => ({ ...prev, [cacheKey]: article }));
+        setLoadingStates(prev => ({ ...prev, [cacheKey]: 'done' }));
         return;
       }
     } catch (err) {}
@@ -147,13 +147,16 @@ Article body...`;
     setLoadingStates(prev => ({ ...prev, [cacheKey]: 'done' }));
   };
 
-  const generateAll = async (market) => {
+  const handleCardClick = async (market) => {
     const cacheKey = market.id;
     const currentData = market.favored;
 
-    setLoadingStates(prev => ({ ...prev, [cacheKey]: 'analysis' }));
+    const newExpanded = expanded === cacheKey ? null : cacheKey;
+    setExpanded(newExpanded);
 
-    if (!aiAnalysis[cacheKey] || aiAnalysis[cacheKey].data !== currentData) {
+    if (newExpanded && !aiAnalysis[cacheKey]) {
+      setLoadingStates(prev => ({ ...prev, [cacheKey]: 'analysis' }));
+
       const prompt = `Analyze Polymarket market: "${market.question}"
 Current odds: ${market.favored} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
 
@@ -189,9 +192,9 @@ Answer in plain text:
       } catch (err) {
         setAiAnalysis(prev => ({ ...prev, [cacheKey]: { text: `AI failed: ${err.message}`, data: currentData } }));
       }
-    }
 
-    await loadArticle(market);
+      await loadArticle(market);
+    }
   };
 
   if (error) return <div className="container"><p>{error}</p></div>;
@@ -202,24 +205,24 @@ Answer in plain text:
       {filtered.length === 0 ? (
         <p>No markets match criteria.</p>
       ) : (
-        <ol className="market-list">
-          {filtered.map((m) => {
+        <div className="market-grid">
+          {filtered.map((m, index) => {
             const analysis = aiAnalysis[m.id];
             const article = articleData[m.id];
             const loading = loadingStates[m.id];
             const isCached = analysis && analysis.data === m.favored;
-            const title = article?.title || 'Read More';
+            const hasAI = isCached || loading;
+            const isExpanded = expanded === m.id;
 
             return (
-              <li key={m.id} className="market-item">
-                <div
-                  className="market-header"
-                  onClick={() => {
-                    const newExpanded = expanded === m.id ? null : m.id;
-                    setExpanded(newExpanded);
-                    if (newExpanded && !isCached) generateAll(m);
-                  }}
-                >
+              <div
+                key={m.id}
+                className={`market-card ${isExpanded ? 'expanded' : ''}`}
+                style={{
+                  gridColumn: isExpanded ? '1 / -1' : 'auto'
+                }}
+              >
+                <div className="market-header" onClick={() => handleCardClick(m)}>
                   <div className="market-question">{m.question}</div>
                   <div className="market-stats">
                     <div className="stat">
@@ -237,38 +240,58 @@ Answer in plain text:
                     {isCached && <span className="cached-badge">[Cached]</span>}
                   </div>
                 </div>
-                {expanded === m.id && (
+
+                {isExpanded && (
                   <div className="market-content">
+                    {/* HEADLINE ABOVE ODDS/REASONING */}
+                    {article && (
+                      <div className="article-headline">{article.title}</div>
+                    )}
+
                     {analysis ? (
                       <>
                         <div className="analysis-text">{analysis.text}</div>
-                        <div>
+                        <div className="read-more-wrapper">
                           {article ? (
-                            <Link
-                              to={`/article/${m.id}`}
-                              state={{ market: m, article: article.content, title: article.title, date: article.date }}
-                              className="read-more"
-                            >
-                              Read More: {title}
-                            </Link>
+                            <>
+                              {/* HEADLINE WITH READ MORE */}
+                              <div className="article-headline-small">{article.title}</div>
+                              <Link
+                                to={`/article/${m.id}`}
+                                state={{ market: m, article: article.content, title: article.title, date: article.date }}
+                                className="read-more"
+                              >
+                                Read Full Article
+                              </Link>
+                            </>
                           ) : (
                             <span className="read-more">
-                              Read More: <span className="blink">___</span>
+                              Generating article<span className="blink">...</span>
                             </span>
                           )}
                         </div>
                       </>
                     ) : (
                       <p className="loading">
-                        {loading === 'analysis' ? 'Analyzing...' : 'Generating article...'}
+                        {loading === 'analysis' ? (
+                          <>Analyzing<span className="blink">...</span></>
+                        ) : (
+                          <>Generating article<span className="blink">...</span></>
+                        )}
                       </p>
                     )}
                   </div>
                 )}
-              </li>
+
+                {!hasAI && !isExpanded && (
+                  <div className="click-to-analyze">
+                    Click to analyze
+                  </div>
+                )}
+              </div>
             );
           })}
-        </ol>
+        </div>
       )}
     </div>
   );
