@@ -149,7 +149,8 @@ Article body...`;
 
   const handleCardClick = async (market) => {
     const cacheKey = market.id;
-    const currentData = market.favored;
+    const currentData = `${market.favored}-${market.volume}`; // ← Add volume
+    // const currentData = market.favored;
 
     const newExpanded = expanded === cacheKey ? null : cacheKey;
     setExpanded(newExpanded);
