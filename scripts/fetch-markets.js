@@ -1,4 +1,5 @@
 // scripts/fetch-markets.js
+console.log('API HIT')
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
@@ -8,6 +9,7 @@ const url = 'https://gamma-api.polymarket.com/markets?limit=100&volume_num_min=5
 fetch(url)
   .then(res => res.json())
   .then(json => {
+    console.log(json)
     const markets = json.data || [];
     const filtered = markets.filter(m =>
       m.active &&
