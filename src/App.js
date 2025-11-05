@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 
 function Home() {
   const [markets, setMarkets] = useState([]);
@@ -14,31 +21,31 @@ function Home() {
 
   // Load cache
   useEffect(() => {
-    const cached = localStorage.getItem('polymarket_ai_cache');
+    const cached = localStorage.getItem("polymarket_ai_cache");
     if (cached) setAiAnalysis(JSON.parse(cached));
-    const articles = localStorage.getItem('polymarket_articles');
+    const articles = localStorage.getItem("polymarket_articles");
     if (articles) setArticleData(JSON.parse(articles));
   }, []);
 
   // Save cache
   useEffect(() => {
-    localStorage.setItem('polymarket_ai_cache', JSON.stringify(aiAnalysis));
+    localStorage.setItem("polymarket_ai_cache", JSON.stringify(aiAnalysis));
   }, [aiAnalysis]);
 
   useEffect(() => {
-    localStorage.setItem('polymarket_articles', JSON.stringify(articleData));
+    localStorage.setItem("polymarket_articles", JSON.stringify(articleData));
   }, [articleData]);
 
   useEffect(() => {
     const fetchMarkets = async () => {
       try {
-        const res = await axios.get('/api/polymarket');
-        const data = Array.isArray(res.data) ? res.data : [];
-        console.log(data ? data : res.data)
+        const res = await axios.get("/api/polymarket");
+        const data = Array.isArray(res.data.data) ? res.data.data : [];
         setMarkets(data);
-        localStorage.setItem('polymarket_markets', JSON.stringify(data));
+        localStorage.setItem("polymarket_markets", JSON.stringify(data));
       } catch (err) {
-        setError('Failed to load markets.');
+        console.error("Fetch error:", err);
+        setError("Failed to load markets.");
       }
     };
     fetchMarkets();
@@ -52,12 +59,14 @@ function Home() {
     const cacheKey = market.id;
     const currentData = `${market.odds}-${market.volume}-${market.liquidity}`;
 
-    setLoadingStates(prev => ({ ...prev, [cacheKey]: 'analysis' }));
+    setLoadingStates((prev) => ({ ...prev, [cacheKey]: "analysis" }));
 
     // Analysis
     if (!aiAnalysis[cacheKey] || aiAnalysis[cacheKey].data !== currentData) {
       const prompt = `Analyze Polymarket market: "${market.question}"
-Current odds: ${market.odds} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
+Current odds: ${market.odds} | Vol: $${formatNumber(
+        market.volume
+      )} | Liq: $${formatNumber(market.liquidity)}
 
 Answer in plain text:
 
@@ -78,27 +87,36 @@ Answer in plain text:
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
           }
         );
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response.';
-        setAiAnalysis(prev => ({ ...prev, [cacheKey]: { text, data: currentData } }));
+        const text =
+          data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+        setAiAnalysis((prev) => ({
+          ...prev,
+          [cacheKey]: { text, data: currentData },
+        }));
       } catch (err) {
-        setAiAnalysis(prev => ({ ...prev, [cacheKey]: { text: `AI failed: ${err.message}`, data: currentData } }));
+        setAiAnalysis((prev) => ({
+          ...prev,
+          [cacheKey]: { text: `AI failed: ${err.message}`, data: currentData },
+        }));
       }
     }
 
-    setLoadingStates(prev => ({ ...prev, [cacheKey]: 'article' }));
+    setLoadingStates((prev) => ({ ...prev, [cacheKey]: "article" }));
 
     // Article
     if (!articleData[cacheKey]) {
       const now = new Date();
-      const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${String(now.getFullYear()).slice(-2)}`;
+      const dateStr = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(
+        now.getDate()
+      ).padStart(2, "0")}/${String(now.getFullYear()).slice(-2)}`;
 
       const prompt = `Write a 600-word professional article with a subtle Joe Rogan tone about this Polymarket market:
 
@@ -127,34 +145,42 @@ Article body...`;
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
           }
         );
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const fullText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed.';
-        const lines = fullText.split('\n').map(l => l.trim()).filter(Boolean);
-        const title = lines[0] || 'NO TITLE';
-        const content = lines.slice(1).join('\n').trim();
+        const fullText =
+          data.candidates?.[0]?.content?.parts?.[0]?.text || "Failed.";
+        const lines = fullText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+        const title = lines[0] || "NO TITLE";
+        const content = lines.slice(1).join("\n").trim();
 
         const articleObj = { title, content, date: dateStr };
-        setArticleData(prev => ({ ...prev, [cacheKey]: articleObj }));
+        setArticleData((prev) => ({ ...prev, [cacheKey]: articleObj }));
       } catch (err) {
-        const fallback = { title: 'ARTICLE ERROR', content: 'Failed to load.', date: dateStr };
-        setArticleData(prev => ({ ...prev, [cacheKey]: fallback }));
+        const fallback = {
+          title: "ARTICLE ERROR",
+          content: "Failed to load.",
+          date: dateStr,
+        };
+        setArticleData((prev) => ({ ...prev, [cacheKey]: fallback }));
       }
     }
 
-    setLoadingStates(prev => ({ ...prev, [cacheKey]: 'done' }));
+    setLoadingStates((prev) => ({ ...prev, [cacheKey]: "done" }));
   };
 
   if (error) return <div>{error}</div>;
 
   return (
-    <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
+    <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
       <h1>Polymarket Markets News</h1>
       {filtered.length === 0 ? (
         <p>No markets match criteria.</p>
@@ -164,8 +190,10 @@ Article body...`;
             const analysis = aiAnalysis[m.id];
             const article = articleData[m.id];
             const loading = loadingStates[m.id];
-            const isCached = analysis && analysis.data === `${m.odds}-${m.volume}-${m.liquidity}`;
-            const title = article?.title || 'Read More';
+            const isCached =
+              analysis &&
+              analysis.data === `${m.odds}-${m.volume}-${m.liquidity}`;
+            const title = article?.title || "Read More";
 
             return (
               <li key={m.id} style={{ marginBottom: 20 }}>
@@ -175,60 +203,86 @@ Article body...`;
                     setExpanded(newExpanded);
                     if (newExpanded && !isCached) generateAll(m);
                   }}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
-                  <strong>{m.question}</strong><br />
+                  <strong>{m.question}</strong>
+                  <br />
                   <small>
-                    Odds: {m.odds} | Vol: ${formatNumber(m.volume)} | Liq: ${formatNumber(m.liquidity)}
-                    {isCached && <span style={{ color: '#34a853' }}> [Cached]</span>}
+                    Odds: {m.odds} | Vol: ${formatNumber(m.volume)} | Liq: $
+                    {formatNumber(m.liquidity)}
+                    {isCached && (
+                      <span style={{ color: "#34a853" }}> [Cached]</span>
+                    )}
                   </small>
                 </div>
                 {expanded === m.id && (
-                  <div style={{
-                    marginTop: 8,
-                    padding: 16,
-                    background: '#f8f9fa',
-                    borderRadius: 8,
-                    fontSize: '0.95em',
-                    lineHeight: 1.6,
-                    borderLeft: '4px solid #34a853'
-                  }}>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: 16,
+                      background: "#f8f9fa",
+                      borderRadius: 8,
+                      fontSize: "0.95em",
+                      lineHeight: 1.6,
+                      borderLeft: "4px solid #34a853",
+                    }}
+                  >
                     {analysis ? (
                       <>
-                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                        <pre
+                          style={{
+                            margin: 0,
+                            whiteSpace: "pre-wrap",
+                            fontFamily: "inherit",
+                          }}
+                        >
                           {analysis.text}
                         </pre>
                         <div style={{ marginTop: 12 }}>
                           {article ? (
                             <Link
                               to={`/article/${m.id}`}
-                              state={{ market: m, article: article.content, title: article.title, date: article.date }}
+                              state={{
+                                market: m,
+                                article: article.content,
+                                title: article.title,
+                                date: article.date,
+                              }}
                               style={{
-                                color: '#d32f2f',
-                                fontWeight: 'bold',
-                                textDecoration: 'none',
-                                fontSize: '0.95em'
+                                color: "#d32f2f",
+                                fontWeight: "bold",
+                                textDecoration: "none",
+                                fontSize: "0.95em",
                               }}
                             >
                               Read More: {title}
                             </Link>
                           ) : (
-                            <span style={{
-                              color: '#d32f2f',
-                              fontWeight: 'bold',
-                              fontSize: '0.95em'
-                            }}>
-                              Read More: <span style={{
-                                display: 'inline-block',
-                                animation: 'blink 1s infinite'
-                              }}>___</span>
+                            <span
+                              style={{
+                                color: "#d32f2f",
+                                fontWeight: "bold",
+                                fontSize: "0.95em",
+                              }}
+                            >
+                              Read More:{" "}
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  animation: "blink 1s infinite",
+                                }}
+                              >
+                                ___
+                              </span>
                             </span>
                           )}
                         </div>
                       </>
                     ) : (
-                      <p style={{ margin: 0, color: '#666' }}>
-                        {loading === 'analysis' ? 'Analyzing...' : 'Generating article...'}
+                      <p style={{ margin: 0, color: "#666" }}>
+                        {loading === "analysis"
+                          ? "Analyzing..."
+                          : "Generating article..."}
                       </p>
                     )}
                   </div>
@@ -250,7 +304,9 @@ function Article() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const articles = JSON.parse(localStorage.getItem('polymarket_articles') || '{}');
+    const articles = JSON.parse(
+      localStorage.getItem("polymarket_articles") || "{}"
+    );
     const data = articles[marketId];
 
     if (data) {
@@ -260,13 +316,17 @@ function Article() {
       return;
     }
 
-    setArticle({ title: 'Article Not Found', content: 'This article was not generated.', date: 'N/A' });
+    setArticle({
+      title: "Article Not Found",
+      content: "This article was not generated.",
+      date: "N/A",
+    });
     setLoading(false);
   }, [marketId]);
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
+      <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
         <button onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
           Back
         </button>
@@ -276,14 +336,25 @@ function Article() {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: 'auto', padding: 20 }}>
-      <button onClick={() => navigate(-1)} style={{ marginBottom: 16, fontSize: '0.9em' }}>
+    <div style={{ maxWidth: 800, margin: "auto", padding: 20 }}>
+      <button
+        onClick={() => navigate(-1)}
+        style={{ marginBottom: 16, fontSize: "0.9em" }}
+      >
         Back
       </button>
-      <div style={{ lineHeight: 1.8, fontSize: '1.1em' }}>
-        <h1 style={{ margin: '0 0 8px 0', fontSize: '1.8em', fontWeight: 'bold' }}>{article.title}</h1>
-        <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '0.9em' }}>Written on {article.date}</p>
-        <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'Georgia, serif' }}>{article.content}</pre>
+      <div style={{ lineHeight: 1.8, fontSize: "1.1em" }}>
+        <h1
+          style={{ margin: "0 0 8px 0", fontSize: "1.8em", fontWeight: "bold" }}
+        >
+          {article.title}
+        </h1>
+        <p style={{ margin: "0 0 20px 0", color: "#666", fontSize: "0.9em" }}>
+          Written on {article.date}
+        </p>
+        <pre style={{ whiteSpace: "pre-wrap", fontFamily: "Georgia, serif" }}>
+          {article.content}
+        </pre>
       </div>
     </div>
   );
