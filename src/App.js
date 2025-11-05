@@ -33,7 +33,7 @@ function Home() {
     const fetchMarkets = async () => {
       try {
         const res = await axios.get(
-          'https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&volume_num_min=50000'
+          '/api/polymarket'
         );
         const data = Array.isArray(res.data) ? res.data : res.data.data || [];
         setMarkets(data);
