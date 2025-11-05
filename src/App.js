@@ -61,7 +61,8 @@ function Home() {
       .sort((a, b) => b.volume - a.volume);
   };
 
-  const filtered = getFilteredMarkets(markets);
+  // const filtered = getFilteredMarkets(markets);
+  const filtered = markets;
 
   const generateAll = async (market) => {
     const cacheKey = market.id;
