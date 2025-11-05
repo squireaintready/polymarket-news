@@ -25,6 +25,7 @@
     "fetch-markets": "node scripts/fetch-markets.js",
     "generate-ai": "node scripts/generate-ai.js",
     "test": "react-scripts test",
+    "update": "npm run fetch-markets && git add public/api/polymarket.json && git commit -m 'Update markets $(date)' && git push",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
