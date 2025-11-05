@@ -160,7 +160,7 @@ Article body...`;
       const prompt = `Analyze Polymarket market: "${market.question}"
 Current odds: ${market.favored} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
 
-Answer in plain text:
+Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
 
 1. My estimated odds: X%
    Reason: [1-2 sentences with key facts/news]
