@@ -32,10 +32,8 @@ function Home() {
   useEffect(() => {
     const fetchMarkets = async () => {
       try {
-        const res = await axios.get(
-          'https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&offset=0&volume_num_min=50000'
-        );
-        const data = Array.isArray(res.data) ? res.data : [];
+        const res = await axios.get('/api/polymarket');
+        const data = Array.isArray(res.data.data) ? res.data.data : [];
         setMarkets(data);
         localStorage.setItem('polymarket_markets', JSON.stringify(data));
       } catch (err) {
@@ -66,7 +64,6 @@ function Home() {
 
     setLoadingStates(prev => ({ ...prev, [cacheKey]: 'analysis' }));
 
-    // Analysis
     if (!aiAnalysis[cacheKey] || aiAnalysis[cacheKey].data !== currentData) {
       const prompt = `Analyze Polymarket market: "${market.question}"
 Current odds: ${market.odds} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
@@ -107,7 +104,6 @@ Answer in plain text:
 
     setLoadingStates(prev => ({ ...prev, [cacheKey]: 'article' }));
 
-    // Article
     if (!articleData[cacheKey]) {
       const now = new Date();
       const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${String(now.getFullYear()).slice(-2)}`;
