@@ -15,8 +15,6 @@ fetch(url)
   .then(json => {
     const markets = json || [];
     console.log(`Found ${markets.length} markets`);
-    json.forEach(e=>console.log(e.active))
-
     const filtered = markets.filter(m =>
       m.active &&
       m.closed == false &&

@@ -23,6 +23,7 @@
     "start": "react-scripts start",
     "build": "npm run fetch-markets && react-scripts build",
     "fetch-markets": "node scripts/fetch-markets.js",
+    "generate-ai": "node scripts/generate-ai.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
