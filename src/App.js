@@ -35,7 +35,7 @@ function Home() {
         const res = await axios.get(
           'https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&offset=0&volume_num_min=50000'
         );
-        const data = Array.isArray(res.data.data) ? res.data.data : [];
+        const data = Array.isArray(res.data) ? res.data : [];
         setMarkets(data);
         localStorage.setItem('polymarket_markets', JSON.stringify(data));
       } catch (err) {
