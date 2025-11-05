@@ -201,7 +201,7 @@ Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
 
   return (
     <div className="container">
-      <h1>Polymarket Markets News</h1>
+      <h1>Polymarket Pulse</h1>
       {filtered.length === 0 ? (
         <p>No markets match criteria.</p>
       ) : (
