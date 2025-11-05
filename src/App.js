@@ -97,7 +97,7 @@ function Home() {
     const now = new Date();
     const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${String(now.getFullYear()).slice(-2)}`;
 
-    const prompt = `Write a 600-word professional article with a subtle Joe Rogan tone about
+    const prompt = `Write a 600-word professional article with a subtle Joe Rogan tone about this Polymarket market:
 
 "${market.question}"
 
@@ -160,7 +160,7 @@ Article body...`;
       const prompt = `Analyze Polymarket market: "${market.question}"
 Current odds: ${market.favored} | Vol: $${formatNumber(market.volume)} | Liq: $${formatNumber(market.liquidity)}
 
-Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
+Answer in plain text:
 
 1. My estimated odds: X%
    Reason: [1-2 sentences with key facts/news]
@@ -201,30 +201,47 @@ Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
 
   return (
     <div className="container">
-      <h1>Polymarket Markets News</h1>
+      <h1>Polymarket Pulse</h1>
       {filtered.length === 0 ? (
         <p>No markets match criteria.</p>
       ) : (
-        <ol className="market-list">
+        <div className="market-grid">
           {filtered.map((m, index) => {
             const analysis = aiAnalysis[m.id];
             const article = articleData[m.id];
             const loading = loadingStates[m.id];
             const isCached = analysis && analysis.data === m.favored;
             const hasAI = isCached || loading;
+            const isExpanded = expanded === m.id;
 
             return (
-              <li key={m.id} className="market-item">
+              <div
+                key={m.id}
+                className={`market-card ${isExpanded ? 'expanded' : ''}`}
+                style={{
+                  gridColumn: isExpanded ? '1 / -1' : 'auto'
+                }}
+              >
                 <div className="market-header" onClick={() => handleCardClick(m)}>
-                  <strong className="market-question">{index + 1}. {m.question}</strong>
+                  <div className="market-question">{m.question}</div>
                   <div className="market-stats">
-                    <span className="stat">Favored: <span className="value">{m.favored}</span></span>
-                    <span className="stat">Vol: <span className="value">${formatNumber(m.volume)}</span></span>
-                    <span className="stat">Liq: <span className="value">${formatNumber(m.liquidity)}</span></span>
-                    {isCached && <span className="cached">[Cached]</span>}
+                    <div className="stat">
+                      <span className="stat-label">Favored:</span>
+                      <span className="stat-value">{m.favored}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Vol:</span>
+                      <span className="stat-value">${formatNumber(m.volume)}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Liq:</span>
+                      <span className="stat-value">${formatNumber(m.liquidity)}</span>
+                    </div>
+                    {isCached && <span className="cached-badge">[Cached]</span>}
                   </div>
                 </div>
-                {expanded === m.id && (
+
+                {isExpanded && (
                   <div className="market-content">
                     {/* HEADLINE ABOVE ODDS/REASONING */}
                     {article && (
@@ -233,16 +250,20 @@ Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
 
                     {analysis ? (
                       <>
-                        <pre className="analysis-text">{analysis.text}</pre>
+                        <div className="analysis-text">{analysis.text}</div>
                         <div className="read-more-wrapper">
                           {article ? (
-                            <Link
-                              to={`/article/${m.id}`}
-                              state={{ market: m, article: article.content, title: article.title, date: article.date }}
-                              className="read-more"
-                            >
-                              Read More: {article.title}
-                            </Link>
+                            <>
+                              {/* HEADLINE WITH READ MORE */}
+                              <div className="article-headline-small">{article.title}</div>
+                              <Link
+                                to={`/article/${m.id}`}
+                                state={{ market: m, article: article.content, title: article.title, date: article.date }}
+                                className="read-more"
+                              >
+                                Read Full Article
+                              </Link>
+                            </>
                           ) : (
                             <span className="read-more">
                               Generating article<span className="blink">...</span>
@@ -261,10 +282,16 @@ Answer in plain text. Do NOT use ** or * for bold/italics. Use plain text only.
                     )}
                   </div>
                 )}
-              </li>
+
+                {!hasAI && !isExpanded && (
+                  <div className="click-to-analyze">
+                    Click to analyze
+                  </div>
+                )}
+              </div>
             );
           })}
-        </ol>
+        </div>
       )}
     </div>
   );
