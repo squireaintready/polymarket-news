@@ -1,27 +1,39 @@
 // scripts/fetch-markets.js
-console.log('API HIT')
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 
-const url = 'https://gamma-api.polymarket.com/markets?limit=100&volume_num_min=50000';
+const url = 'https://gamma-api.polymarket.com/markets?limit=100&volume_num_min=10000&closed=false&liquidity_num_min=10000';
+
+console.log('Fetching from:', url);
 
 fetch(url)
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  })
   .then(json => {
-    console.log(json)
-    const markets = json.data || [];
+    const markets = json || [];
+    console.log(`Found ${markets.length} markets`);
+    json.forEach(e=>console.log(e.active))
+
     const filtered = markets.filter(m =>
       m.active &&
-      !m.closed &&
-      parseFloat(m.liquidity || 0) > 10000
+      m.closed == false &&
+      parseFloat(m.volumeNum || 0) > 10000
     );
 
-    const outputPath = path.join(__dirname, '../public/api/polymarket.json');
+    console.log(`Filtered to ${filtered.length} markets`);
+
+    const outputPath = path.resolve(__dirname, '../public/api/polymarket.json');
+    console.log('Writing to:', outputPath);
+
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, JSON.stringify(filtered, null, 2));
-    console.log('Markets saved to public/api/polymarket.json');
+
+    console.log('SUCCESS: polymarket.json updated');
   })
   .catch(err => {
-    console.error('Failed to fetch markets:', err);
+    console.error('FETCH FAILED:', err.message);
     process.exit(1);
   });
