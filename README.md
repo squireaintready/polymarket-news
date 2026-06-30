@@ -2,9 +2,7 @@
 
 An AI-generated news desk for prediction markets. It pulls the most active markets from **Polymarket**, then uses **Google Gemini** to write a short analytical article for each one — turning live betting odds into readable market commentary.
 
-**Live → [polymarket-news.vercel.app](https://polymarket-news.vercel.app/)**
-
-> The prototype that became **[Crowdtells](https://crowdtells.com)**.
+> The prototype that became **[Crowdtells](https://crowdtells.com)** — the polished, live version of this idea.
 
 ## How it works
 
